@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Google.Ads.GoogleAds.Config;
+using Google.Ads.GoogleAds.Examples.V8;
 using Google.Ads.GoogleAds.Lib;
 using Google.Ads.GoogleAds.Util;
 
@@ -62,19 +64,36 @@ namespace Google.Ads.GoogleAds.Examples
             // string oAuth2RefreshToken = "INSERT_OAUTH2_REFRESH_TOKEN_HERE";
             // long loginCustomerId = long.Parse("INSERT_LOGIN_CUSTOMER_ID_HERE");
 
-            // GoogleAdsConfig googleAdsConfig = new GoogleAdsConfig()
-            // {
-            //     DeveloperToken = developerToken,
-            //     LoginCustomerId = loginCustomerId.ToString(),
-            //     OAuth2ClientId = oAuth2clientId,
-            //     OAuth2ClientSecret = oAuth2Secret,
-            //     OAuth2RefreshToken = oAuth2RefreshToken,
-            // };
+            /*           
+                <add key = 'OAuth2Mode' value = 'APPLICATION' />
+                <add key = 'OAuth2ClientId' value = '701833517764-30ffl3fg731m83eiet18r1t2pav6d5gh.apps.googleusercontent.com' />
+                <add key = 'OAuth2ClientSecret' value = '7lP4ODmjfO9AVTp1OiudDcP_' />
+                <add key = 'OAuth2RefreshToken' value = '1//09DHhiCTnjjmECgYIARAAGAkSNwF-L9IrcQK-l_6d_AWjLlcfPtZHbCfwswwb7dKaD575K99EACKiuoejMji8Qy-V6blJkviZ8QM' />
+             */
 
-            //GoogleAdsClient googleAdsClient = new GoogleAdsClient(googleAdsConfig);
+            GoogleAdsConfig googleAdsConfig = new GoogleAdsConfig()
+            {
+                DeveloperToken = "N0N4otYUZraRNzOxUdQGhQ",
+                //LoginCustomerId = "5025419334",
+                //OAuth2ClientId = "701833517764-6sjju6n9v3o2s5m49pkrnj8ou1otju1s.apps.googleusercontent.com",
+                //OAuth2ClientSecret = "c3YWq_goas2NV6v83FXu2qR0",
+                OAuth2ClientId = "701833517764-30ffl3fg731m83eiet18r1t2pav6d5gh.apps.googleusercontent.com",
+                OAuth2ClientSecret = "7lP4ODmjfO9AVTp1OiudDcP_",
+                OAuth2RefreshToken = "1//09aLpNB7gSEgdCgYIARAAGAkSNwF-L9IrsTIJXM-dJKnffMCMN6UGegKv4JYhMAx0QGap6CJlmAat0SZUfDGEIJ9lMDVbtIO26RI"
+            };
 
-            // Run the code example.
-            // new V2.GetCampaigns().Run(new GoogleAdsClient(), 1234567890);
+            GoogleAdsClient googleAdsClient = new GoogleAdsClient(googleAdsConfig);
+
+            Console.WriteLine("Running the right project");
+
+            // Run the code example. //
+
+            //new AddCustomAudience().Run(googleAdsClient, 3660013635);
+            new AddCustomerMatchUserList().Run(googleAdsClient, 3660013635);
+            //new AddCampaigns().Run(googleAdsClient, 3660013635);
+            //new AddAdGroups().Run(googleAdsClient, 3660013635, 11690754915);
+            //new ListAccessibleCustomers().Run(googleAdsClient);
+            //new GetCampaigns().Run(googleAdsClient, 3660013635);
 
             // Alternatively, you can pass command line arguments to run the code example. E.g.
             // V2.GetCampaigns --customerId=1234567890

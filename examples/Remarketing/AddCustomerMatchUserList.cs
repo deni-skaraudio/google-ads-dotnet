@@ -13,6 +13,7 @@
 // limitations under the License.
 
 using CommandLine;
+using Dapper;
 using Google.Ads.GoogleAds.Lib;
 using Google.Ads.GoogleAds.V8.Common;
 using Google.Ads.GoogleAds.V8.Errors;
@@ -21,6 +22,7 @@ using Google.Ads.GoogleAds.V8.Services;
 using Google.Api.Gax;
 using Google.LongRunning;
 using Google.Protobuf.WellKnownTypes;
+using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
@@ -80,8 +82,8 @@ namespace Google.Ads.GoogleAds.Examples.V8
             codeExample.Run(new GoogleAdsClient(), options.CustomerId);
         }
 
-        private const int POLL_FREQUENCY_SECONDS = 1;
-        private const int MAX_TOTAL_POLL_INTERVAL_SECONDS = 60;
+        private const int POLL_FREQUENCY_SECONDS = 10;
+        private const int MAX_TOTAL_POLL_INTERVAL_SECONDS = 3000;
 
         private static SHA256 digest = SHA256.Create();
 
@@ -105,7 +107,8 @@ namespace Google.Ads.GoogleAds.Examples.V8
         {
             try
             {
-                string userListResourceName = CreateCustomerMatchUserList(client, customerId);
+                // string userListResourceName = CreateCustomerMatchUserList(client, customerId);
+                string userListResourceName = "customers/3660013635/userLists/6893759474";
                 AddUsersToCustomerMatchUserList(client, customerId, userListResourceName);
                 PrintCustomerMatchUserListInfo(client, customerId, userListResourceName);
             }
@@ -134,9 +137,8 @@ namespace Google.Ads.GoogleAds.Examples.V8
             // Creates the user list.
             UserList userList = new UserList()
             {
-                Name = $"Customer Match list# {ExampleUtilities.GetShortRandomString()}",
-                Description = "A list of customers that originated from email and physical" +
-                    " addresses",
+                Name = $"Customer Match List From Advertising DB 2021-09-11 #{ExampleUtilities.GetShortRandomString()}",
+                Description = "A list of customers that originated from email and physical addresses",
                 // Customer Match user lists can use a membership life span of 10000 to
                 // indicate unlimited; otherwise normal values apply.
                 // Sets the membership life span to 30 days.
@@ -253,51 +255,53 @@ namespace Google.Ads.GoogleAds.Examples.V8
         private static OfflineUserDataJobOperation[] BuildOfflineUserDataJobOperations()
         {
             // [START add_customer_match_user_list_2]
-            // Creates a first user data based on an email address.
-            UserData userDataWithEmailAddress = new UserData()
-            {
-                UserIdentifiers = {
-                    new UserIdentifier()
-                    {
-                        // Hash normalized email addresses based on SHA-256 hashing algorithm.
-                        HashedEmail = NormalizeAndHash("customer@example.com")
-                    }
-                }
-            };
 
-            // Creates a second user data based on a physical address.
-            UserData userDataWithPhysicalAddress = new UserData()
+            using (var connection = new MySqlConnection("Server=54.202.200.145;Database=advertising;User Id=kevin;Password=7NvdStXBh5b739Xs;port=3306;SSL Mode=None"))
             {
-                UserIdentifiers =
+                //connection.Open();
+                // the 'Query' method is provided by Dapper
+                var users = connection.Query("SELECT id, email, phone, fn, ln, zip, country, ltv, updated_at FROM advertising.google_ads_customer_list LIMIT 10000").AsList();
+                // each object in 'users' will have .id and .fn properties
+                Console.WriteLine($"Fetched {users.Count} items from 'skaraudio.advertising' database. ");
+
+                OfflineUserDataJobOperation[] operations = new OfflineUserDataJobOperation[users.Count];
+
+                for (int i = 0; i < users.Count; i++)
                 {
-                    new UserIdentifier()
+                    var user = users[i];
+                    // Creates a first user data based on an email address.
+                    UserData userData = new UserData()
                     {
-                        AddressInfo = new OfflineUserAddressInfo()
-                        {
-                            // First and last name must be normalized and hashed.
-                            HashedFirstName = NormalizeAndHash("John"),
-                            HashedLastName = NormalizeAndHash("Doe"),
-                            // Country code and zip code are sent in plain text.
-                            CountryCode = "US",
-                            PostalCode = "10011"
+                        UserIdentifiers = {
+                            new UserIdentifier()
+                            {
+                                // Hash normalized email addresses based on SHA-256 hashing algorithm.
+                                HashedEmail = NormalizeAndHash(user.email),
+                                AddressInfo = new OfflineUserAddressInfo()
+                                {
+                                    // First and last name must be normalized and hashed.
+                                    HashedFirstName = NormalizeAndHash(user.fn),
+                                    HashedLastName = NormalizeAndHash(user.ln),
+                                    // Country code and zip code are sent in plain text.
+                                    CountryCode = user.country,
+                                    PostalCode = user.zip != null ? user.zip.ToString() : ""
+                                },
+                                HashedPhoneNumber = user.phone != null ? NormalizeAndHash(user.phone.ToString()) : ""
+
+                            }
                         }
-                    }
+                    };
+                    OfflineUserDataJobOperation operation = new OfflineUserDataJobOperation()
+                    {
+                        Create = userData
+                    };
+                    operations[i] = operation;
                 }
-            };
-            // [END add_customer_match_user_list_2]
 
-            // Creates the operations to add the two users.
-            return new OfflineUserDataJobOperation[]
-            {
-                new OfflineUserDataJobOperation()
-                {
-                    Create = userDataWithEmailAddress
-                },
-                new OfflineUserDataJobOperation()
-                {
-                    Create = userDataWithPhysicalAddress
-                }
-            };
+                // Creates the operations to add the two users.
+                return operations;
+            }
+
         }
 
         /// <summary>
